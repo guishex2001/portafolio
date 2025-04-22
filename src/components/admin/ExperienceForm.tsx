@@ -1,17 +1,19 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { supabase } from '../../lib/supabase';
+import { supabase, createExperience, updateExperience } from '../../lib/supabase';
 import type { Experience } from '../../types/database.types';
 import Input from '../ui/Input';
 import TextArea from '../ui/TextArea';
 import Button from '../ui/Button';
+import { useExperienceStore } from '../../store/useExperienceStore';
 
 interface ExperienceFormProps {
   experience?: Experience;
-  onSuccess: () => void;
   onCancel: () => void;
 }
 
+// Define the form data structure
 interface FormData {
   company: string;
   position: string;
@@ -21,13 +23,22 @@ interface FormData {
 }
 
 const ExperienceForm: React.FC<ExperienceFormProps> = ({ 
-  experience,
-  onSuccess,
+  experience: initialExperience,
   onCancel
 }) => {
+  const router = useRouter();
+  const { addExperience, updateAnExperience } = useExperienceStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+  const [experience, setExperience] = useState<Experience | undefined>(initialExperience)
+  useEffect(() => {
+    if(initialExperience){
+      setExperience(initialExperience)
+    }
+  }, [initialExperience])
+
+  // Initialize the form using react-hook-form with default values if experience is provided
+
   const { 
     register, 
     handleSubmit, 
@@ -43,23 +54,16 @@ const ExperienceForm: React.FC<ExperienceFormProps> = ({
   });
   
   const onSubmit = async (data: FormData) => {
-    setIsSubmitting(true);
-    setError(null);
+      setIsSubmitting(true);
+      setError(null);
     
     try {
       if (experience) {
-        // Update existing experience
-        const { error: supabaseError } = await supabase
-          .from('experiences')
-          .update({
-            company: data.company,
-            position: data.position,
-            start_date: data.startDate,
-            end_date: data.endDate || null,
-            description: data.description,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', experience.id);
+        const updatedExperience = { ...experience, ...data } as Experience
+
+        const { error: supabaseError, data: updatedData } = await updateExperience(updatedExperience)
+
+        updateAnExperience(updatedData[0])
         
         if (supabaseError) throw supabaseError;
       } else {
@@ -76,7 +80,8 @@ const ExperienceForm: React.FC<ExperienceFormProps> = ({
             updated_at: new Date().toISOString()
           }]);
         
-        if (supabaseError) throw supabaseError;
+        if (supabaseError) throw supabaseError;   
+        addExperience(supabaseResponse.data[0])    
       }
       
       onSuccess();
@@ -85,6 +90,10 @@ const ExperienceForm: React.FC<ExperienceFormProps> = ({
       setError('Hubo un error al guardar la experiencia. Por favor, inténtalo de nuevo.');
     } finally {
       setIsSubmitting(false);
+    }
+    function onSuccess() {
+      router.refresh()
+      router.push('/admin/experience')
     }
   };
   
@@ -174,7 +183,7 @@ const ExperienceForm: React.FC<ExperienceFormProps> = ({
               Guardando...
             </span>
           ) : (
-            experience ? 'Actualizar Experiencia' : 'Crear Experiencia'
+            initialExperience ? 'Actualizar Experiencia' : 'Crear Experiencia'
           )}
         </Button>
       </div>

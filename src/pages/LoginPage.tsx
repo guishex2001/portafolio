@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Anchor, LogIn } from 'lucide-react';
@@ -11,38 +11,39 @@ const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  
-  const { signIn, user } = useAuthStore();
+
+  const { isAuth, login, logout } = useAuthStore();
   const navigate = useNavigate();
-  
+
   useEffect(() => {
     // Redirect if already logged in
-    if (user) {
-      navigate('/admin');
+    if (isAuth) {
+      navigate('/admin/dashboard');
     }
-    
+
     // Update document title
     document.title = 'Login | Admin Panel';
-  }, [user, navigate]);
-  
-  const handleSubmit = async (e: React.FormEvent) => {
+  }, [isAuth, navigate]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       setError('Por favor, completa todos los campos.');
       return;
     }
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      await signIn(email, password);
-      navigate('/admin');
+      // await signIn(email, password); // Removed supabase auth for now
+      login();
+      navigate('/admin/dashboard');
     } catch (err) {
       console.error('Login error:', err);
       setError('Credenciales inválidas. Por favor, inténtalo de nuevo.');
-    } finally {
+    } finally {      
       setIsLoading(false);
     }
   };
@@ -60,7 +61,7 @@ const LoginPage: React.FC = () => {
           <rect width="100%" height="100%" fill="url(#grid)" />
         </svg>
       </div>
-      
+
       {/* Compass decoration */}
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-0 opacity-5">
         <svg viewBox="0 0 400 400" width="400" height="400" xmlns="http://www.w3.org/2000/svg">
@@ -71,7 +72,7 @@ const LoginPage: React.FC = () => {
           <path d="M 200 200 L 120 120 M 200 200 L 280 280" stroke="#F59E0B" strokeWidth="3" />
         </svg>
       </div>
-      
+
       <div className="flex-1 flex items-center justify-center relative z-10 px-4 py-12">
         <motion.div
           className="max-w-md w-full bg-gray-800/90 backdrop-blur-sm border border-gray-700 rounded-lg shadow-xl overflow-hidden"
@@ -83,54 +84,57 @@ const LoginPage: React.FC = () => {
             <div className="flex justify-center mb-8">
               <Anchor className="h-12 w-12 text-amber-500" />
             </div>
-            
+
             <h2 className="text-2xl font-bold text-center mb-6">
               Panel de Administración
             </h2>
-            
+
             {error && (
               <div className="mb-6 p-4 bg-red-900/30 border border-red-800 rounded-lg">
                 <p className="text-red-200 text-center">{error}</p>
               </div>
             )}
-            
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <Input
-                id="email"
-                label="Email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@email.com"
-                required
-              />
-              
-              <Input
-                id="password"
-                label="Contraseña"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              
+
+            <form onSubmit={handleLogin} className="space-y-6">
+              {/* <Input
+                id="email" label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu@email.com" required /> */}
+
+              {/* <Input
+                id="password" label="Contraseña" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required /> */}
+
               <Button
                 type="submit"
                 variant="primary"
                 className="w-full"
                 disabled={isLoading}
-                icon={<LogIn className="w-5 h-5" />}
+                // icon={<LogIn className="w-5 h-5" />}
               >
                 {isLoading ? (
                   <span className="flex items-center">
                     <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
                     </svg>
                     Ingresando...
                   </span>
                 ) : (
-                  'Iniciar Sesión'
+                  'Login'
+                )}
+              </Button>
+
+              <Button
+                type="button"
+                variant="secondary"
+                className="w-full"
+                onClick={() => {
+                  logout();
+                  navigate('/');
+                }}
+              >
+                {isLoading ? (
+                  <span className="flex items-center"></span>
+                ) : (
+                  'Logout'
                 )}
               </Button>
             </form>
@@ -143,7 +147,7 @@ const LoginPage: React.FC = () => {
             </p>
           </div>
         </motion.div>
-      </div>
+      </div>     
     </div>
   );
 };

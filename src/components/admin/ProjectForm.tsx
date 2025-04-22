@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { supabase } from '../../lib/supabase';
 import type { Project } from '../../types/database.types';
 import Input from '../ui/Input';
 import TextArea from '../ui/TextArea';
 import Button from '../ui/Button';
+import { createProject, updateProject } from '../../lib/supabase';
+import { useProjectStore } from '../../store/useProjectStore';
 
 interface ProjectFormProps {
-  project?: Project;
   onSuccess: () => void;
   onCancel: () => void;
 }
@@ -21,14 +22,17 @@ interface FormData {
   githubUrl: string;
 }
 
-const ProjectForm: React.FC<ProjectFormProps> = ({ 
-  project,
-  onSuccess,
-  onCancel
-}) => {
+interface Props {
+  project?: Project;
+}
+
+const ProjectForm: React.FC<Props> = ({ project }) => {
+  const { addProject, updateProject: updateProjectStore } = useProjectStore();
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+  const [currentProject, setCurrentProject] = useState<Project | undefined>(project);
+
   const { 
     register, 
     handleSubmit, 
@@ -44,6 +48,10 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
     } : undefined
   });
   
+  useEffect(() => {
+    setCurrentProject(project);
+  }, [project]);
+
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     setError(null);
@@ -55,40 +63,33 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
         .filter(tech => tech !== '');
       
       if (project) {
-        // Update existing project
-        const { error: supabaseError } = await supabase
-          .from('projects')
-          .update({
-            title: data.title,
-            description: data.description,
-            image_url: data.imageUrl,
-            technologies,
-            url: data.url || null,
-            github_url: data.githubUrl || null,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', project.id);
-        
-        if (supabaseError) throw supabaseError;
+        const { data: updatedProject, error: supabaseError } = await updateProject({
+          ...data,
+          id: currentProject?.id,
+          technologies,
+        } as Project);
+
+        if (supabaseError) {
+          throw supabaseError;
+        }
+
+        if (updatedProject) {
+          updateProjectStore(updatedProject);
+          router.push('/admin/projects');
+        }
       } else {
-        // Create new project
-        const { error: supabaseError } = await supabase
-          .from('projects')
-          .insert([{
-            title: data.title,
-            description: data.description,
-            image_url: data.imageUrl,
-            technologies,
-            url: data.url || null,
-            github_url: data.githubUrl || null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }]);
-        
-        if (supabaseError) throw supabaseError;
+        const { data: newProject, error: supabaseError } = await createProject({
+          ...data,
+          technologies,
+        } as Project);
+        if (supabaseError) {
+          throw supabaseError;
+        }
+        if (newProject) {
+          addProject(newProject);
+          router.push('/admin/projects');
+        }
       }
-      
-      onSuccess();
     } catch (err) {
       console.error('Error saving project:', err);
       setError('Hubo un error al guardar el proyecto. Por favor, inténtalo de nuevo.');
@@ -167,7 +168,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
         <Button
           type="button"
           variant="outline"
-          onClick={onCancel}
+          onClick={() => router.back()}
         >
           Cancelar
         </Button>

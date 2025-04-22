@@ -8,18 +8,13 @@ import Card from '../../components/ui/Card';
 import ExperienceForm from '../../components/admin/ExperienceForm';
 
 const AdminExperience: React.FC = () => {
-  const { experiences, loading, error, fetchExperiences, deleteExperience } = useExperienceStore();
+  const { experiences, loading, error, fetchExperiences, deleteExperience: deleteExperienceStore } = useExperienceStore();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedExperience, setSelectedExperience] = useState<Experience | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
   
   useEffect(() => {
-    // Update document title
     document.title = 'Gestionar Experiencia | Panel Admin';
-    
-    // Fetch experiences on mount
-    fetchExperiences();
-  }, [fetchExperiences]);
   
   const handleAddNew = () => {
     setSelectedExperience(null);
@@ -48,7 +43,10 @@ const AdminExperience: React.FC = () => {
   
   const confirmDelete = async (experienceId: number) => {
     try {
-      await deleteExperience(experienceId);
+      await deleteExperienceStore(experienceId);
+      const experienceIndex = experiences.findIndex(experience => experience.id === experienceId)
+      experiences.splice(experienceIndex,1);
+
       setShowDeleteConfirm(null);
     } catch (error) {
       console.error('Error deleting experience:', error);
@@ -115,7 +113,7 @@ const AdminExperience: React.FC = () => {
               </div>
             </motion.div>
           </motion.div>
-        )}
+        )}  
       </AnimatePresence>
       
       {/* Experiences list */}
@@ -124,7 +122,7 @@ const AdminExperience: React.FC = () => {
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
           </div>
-        ) : experiences.length > 0 ? (
+        ) : (experiences.length > 0) ? (
           experiences.map((experience) => (
             <Card key={experience.id} className="p-6">
               <div className="flex flex-col md:flex-row justify-between">

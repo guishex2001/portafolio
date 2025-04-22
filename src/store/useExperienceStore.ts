@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Experience } from '../types/database.types';
 
@@ -12,10 +13,20 @@ interface ExperienceState {
   deleteExperience: (id: number) => Promise<void>;
 }
 
-export const useExperienceStore = create<ExperienceState>((set, get) => ({
+export const useExperienceStore = create<ExperienceState>((set, get) => {
+
+  (async() => {
+    await get().fetchExperiences();
+  })();
+  return {
   experiences: [],
   loading: false,
   error: null,
+  
+
+
+
+
   
   fetchExperiences: async () => {
     try {
@@ -139,4 +150,5 @@ export const useExperienceStore = create<ExperienceState>((set, get) => ({
       set({ error: 'Failed to delete experience', loading: false });
     }
   }
-}));
+}});
+});

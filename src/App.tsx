@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useAuthStore } from './store/useAuthStore';
 
 // Public pages
@@ -19,15 +19,31 @@ import AdminProjects from './pages/admin/AdminProjects';
 import AdminExperience from './pages/admin/AdminExperience';
 
 function App() {
-  const { checkUser } = useAuthStore();
+  const { checkUser, isAuthenticated } = useAuthStore();
   
   useEffect(() => {
     checkUser();
   }, [checkUser]);
   
+    const PrivateRoute = () => {
+    if (!isAuthenticated) {
+      return <Navigate to="/login" replace />;
+    }
+    return <Outlet />;
+  };
+
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route element={<PrivateRoute />}>
+            {/* Admin routes */}
+            <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="projects" element={<AdminProjects />} />
+                <Route path="experience" element={<AdminExperience />} />
+            </Route>
+        </Route>
         {/* Public routes */}
         <Route path="/" element={<HomePage />} />
         <Route path="/about" element={<AboutPage />} />
@@ -35,15 +51,7 @@ function App() {
         <Route path="/projects" element={<ProjectsPage />} />
         <Route path="/skills" element={<SkillsPage />} />
         <Route path="/contact" element={<ContactPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        
-        {/* Admin routes */}
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<AdminDashboard />} />
-          <Route path="projects" element={<AdminProjects />} />
-          <Route path="experience" element={<AdminExperience />} />
-          <Route path="profile" element={<div>Profile Management (Coming Soon)</div>} />
-          <Route path="messages" element={<div>Messages (Coming Soon)</div>} />
+        <Route path="profile" element={<div>Profile Management (Coming Soon)</div>} />
         </Route>
         
         {/* Catch all */}

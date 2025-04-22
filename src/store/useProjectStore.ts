@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { supabase } from '../lib/supabase';
+import { supabase, getProjects } from '../lib/supabase';
 import type { Project } from '../types/database.types';
 
 interface ProjectState {
@@ -12,11 +12,20 @@ interface ProjectState {
   deleteProject: (id: number) => Promise<void>;
 }
 
-export const useProjectStore = create<ProjectState>((set, get) => ({
+export const useProjectStore = create<ProjectState>((set, get) => {
+  
+  const fetchInitialData = async () => {
+    set({loading: true});
+    const projects = await getProjects();
+    set({projects: projects, loading: false});
+  }
+
+  fetchInitialData();
+  
+  return ({
   projects: [],
   loading: false,
   error: null,
-  
   fetchProjects: async () => {
     try {
       set({ loading: true, error: null });
@@ -143,4 +152,5 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       set({ error: 'Failed to delete project', loading: false });
     }
   }
-}));
+})
+});

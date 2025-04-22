@@ -11,15 +11,10 @@ const AdminProjects: React.FC = () => {
   const { projects, loading, error, fetchProjects, deleteProject } = useProjectStore();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);  
   
   useEffect(() => {
-    // Update document title
     document.title = 'Gestionar Proyectos | Panel Admin';
-    
-    // Fetch projects on mount
-    fetchProjects();
-  }, [fetchProjects]);
   
   const handleAddNew = () => {
     setSelectedProject(null);
@@ -46,7 +41,11 @@ const AdminProjects: React.FC = () => {
     setShowDeleteConfirm(projectId);
   };
   
-  const confirmDelete = async (projectId: number) => {
+  const confirmDelete = async (projectId: number, e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    
     try {
       await deleteProject(projectId);
       setShowDeleteConfirm(null);
@@ -160,7 +159,7 @@ const AdminProjects: React.FC = () => {
                           Cancelar
                         </Button>
                         <Button 
-                          variant="danger" 
+                          variant="danger"
                           size="sm"
                           onClick={() => confirmDelete(project.id)}
                         >
